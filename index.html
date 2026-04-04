@@ -1244,15 +1244,21 @@
               <label class="form-label">当前会话</label>
               <p style="font-size:14px;color:var(--text-secondary);" id="settingsSessionInfo">无</p>
             </div>
-            <div class="form-group">
-              <label class="form-label"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> 上传图片提取文字</label>
-              <button class="btn-primary" id="ocrUploadBtn" style="font-size:13px;padding:8px 16px;width:auto;display:inline-flex;align-items:center;gap:6px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> 选择图片</button>
-              <input type="file" id="ocrFileInput" accept="image/*" style="display:none;" />
-              <p class="form-hint">上传图片后自动识别文字，填入下方人设指令</p>
-            </div>
             <div class="form-group" id="promptEditGroup" style="display:none;">
               <label class="form-label"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg> 人设指令 (System Prompt)</label>
               <textarea class="form-input form-textarea" id="promptEditInput" placeholder="输入 AI 的角色设定..." style="min-height:80px;"></textarea>
+              <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+                <button class="btn-primary" id="ocrUploadBtn" style="font-size:13px;padding:8px 16px;width:auto;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> 上传图片</button>
+                <input type="file" id="ocrFileInput" accept="image/*" style="display:none;" />
+                <span style="font-size:12px;color:var(--text-secondary);">上传图片后可查看并手动复制文字到上方输入框</span>
+              </div>
+              <div id="ocrPreview" style="display:none;margin-top:8px;">
+                <img id="ocrPreviewImg" style="max-width:100%;max-height:240px;border-radius:10px;border:1px solid var(--border-color);cursor:pointer;" title="点击查看大图" />
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                  <span id="ocrPreviewName" style="font-size:12px;color:var(--text-secondary);"></span>
+                  <button id="ocrRemoveBtn" style="font-size:12px;color:#FF3B30;background:none;border:none;cursor:pointer;padding:0;">移除</button>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label" style="margin-bottom:0;justify-content:space-between;">
@@ -2175,33 +2181,6 @@
         });
       }
 
-      // ==================== 图片识别（DeepSeek API） ====================
-      function performOCR(file) {
-        return new Promise((resolve, reject) => {
-          if (!apiKey) { reject(new Error("请先填写 API Key")); return; }
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const base64 = e.target.result.split(",")[1];
-            fetch("https://api.deepseek.com/chat/completions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + apiKey },
-              body: JSON.stringify({
-                model: "deepseek-chat",
-                messages: [{ role: "user", content: [
-                  { type: "text", text: "请提取这张图片中的所有文字内容，只输出文字，不要添加任何解释。如果没有文字，输出\"未识别到文字\"。" },
-                  { type: "image_url", image_url: { url: "data:image/png;base64," + base64 } }
-                ]}],
-                max_tokens: 4096
-              })
-            }).then(r => r.json()).then(data => {
-              const text = data.choices?.[0]?.message?.content || "未识别到文字";
-              resolve(text.trim());
-            }).catch(reject);
-          };
-          reader.readAsDataURL(file);
-        });
-      }
-
       // ==================== 长按适配（移动端） ====================
       function setupLongPress() {
         let pressTimer = null;
@@ -2488,34 +2467,23 @@
 
         // OCR 图片上传
         $("ocrUploadBtn").addEventListener("click", () => $("ocrFileInput").click());
-        $("ocrFileInput").addEventListener("change", async (e) => {
+        $("ocrFileInput").addEventListener("change", (e) => {
           const file = e.target.files[0];
           if (!file) return;
-          const btn = $("ocrUploadBtn");
-          const origText = btn.innerHTML;
-          btn.innerHTML = "⏳ 识别中...";
-          btn.disabled = true;
-          try {
-            const text = await performOCR(file);
-            // 如果没有活跃会话，显示 promptEditGroup
-            const session = getActiveSession();
-            if (session) {
-              $("promptEditGroup").style.display = "block";
-              const textarea = $("promptEditInput");
-              textarea.value = text;
-              textarea.dispatchEvent(new Event("input"));
-            } else {
-              // 没有会话时，把识别结果存到临时变量，创建会话时使用
-              window._pendingSystemPrompt = text;
-              showError("识别成功！请创建一个人设来使用这段文字 ✅");
-            }
-          } catch (err) {
-            showError("识别失败：" + err.message);
-          } finally {
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            e.target.value = "";
-          }
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            $("ocrPreviewImg").src = ev.target.result;
+            $("ocrPreviewName").textContent = file.name;
+            $("ocrPreview").style.display = "block";
+            $("ocrUploadBtn").style.display = "none";
+          };
+          reader.readAsDataURL(file);
+          e.target.value = "";
+        });
+        $("ocrRemoveBtn").addEventListener("click", () => {
+          $("ocrPreview").style.display = "none";
+          $("ocrUploadBtn").style.display = "";
+          $("ocrPreviewImg").src = "";
         });
 
         // 调试模式开关
