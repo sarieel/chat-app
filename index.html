@@ -14,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.loli.net/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       *,
       *::before,
@@ -450,6 +451,37 @@
         color: white;
         border-bottom-right-radius: 6px;
         box-shadow: var(--shadow-bubble);
+        position: relative;
+      }
+      .bubble.user-bubble .copy-btn {
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-card);
+        transition: color 0.2s, background 0.2s;
+        z-index: 5;
+      }
+      .bubble.user-bubble:hover .copy-btn,
+      .bubble.user-bubble .copy-btn.visible {
+        display: flex;
+      }
+      .bubble.user-bubble .copy-btn:hover {
+        color: var(--pink-500);
+        background: var(--pink-50);
+      }
+      .bubble.user-bubble .copy-btn.copied {
+        color: #34c759;
       }
       .bubble.bot-bubble {
         background: var(--bg-secondary);
@@ -457,6 +489,42 @@
         border-bottom-left-radius: 6px;
         box-shadow: var(--shadow-bubble);
         border: 1px solid var(--border-color);
+        position: relative;
+      }
+      .bubble.bot-bubble .copy-btn {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--shadow-card);
+        transition: color 0.2s, background 0.2s;
+        z-index: 5;
+      }
+      .bubble.bot-bubble:hover .copy-btn,
+      .bubble.bot-bubble .copy-btn.visible {
+        display: flex;
+      }
+      .bubble.bot-bubble .copy-btn:hover {
+        color: var(--pink-500);
+        background: var(--pink-50);
+      }
+      .bubble.bot-bubble .copy-btn.copied {
+        color: #34c759;
+      }
+      @media (prefers-color-scheme: dark) {
+        .bubble.bot-bubble .copy-btn:hover {
+          background: rgba(255, 107, 157, 0.1);
+        }
       }
 
       .time-wrapper {
@@ -999,7 +1067,8 @@
         z-index: 10;
       }
       .message-row.bot { position: relative; }
-      .message-row.bot:hover .msg-delete-btn { display: block; }
+      .message-row.bot:hover .msg-delete-btn,
+      .msg-delete-btn.visible { display: block; }
 
       /* 调试面板 */
       .debug-panel {
@@ -1149,6 +1218,11 @@
             <label class="form-label">🎨 AI 头像颜色</label>
             <div id="colorPresets" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
           </div>
+          <div class="form-group" id="promptEditGroup" style="display:none;">
+            <label class="form-label">📝 人设指令 (System Prompt)</label>
+            <textarea class="form-input form-textarea" id="promptEditInput" placeholder="输入 AI 的角色设定..." style="min-height:80px;"></textarea>
+            <p class="form-hint">修改后立即生效</p>
+          </div>
           <div class="form-group">
             <label class="form-label" style="margin-bottom:0;display:flex;justify-content:space-between;align-items:center;">
               🔧 调试模式
@@ -1268,6 +1342,7 @@
       let userAvatar = localStorage.getItem("userAvatar") || "我";
       let debugMode = localStorage.getItem("debugMode") === "true";
       let apiLogs = JSON.parse(localStorage.getItem("apiLogs") || "[]");
+      const draftCache = {}; // 会话草稿缓存
 
       function getActiveSession() {
         return sessions.find((s) => s.id === activeSessionId) || null;
@@ -1362,6 +1437,34 @@
           </div>
           <button class="session-delete" data-id="${session.id}" title="删除">🗑️</button>
         `;
+          item.addEventListener("dblclick", (e) => {
+            if (e.target.closest(".session-delete")) return;
+            const nameEl = item.querySelector(".session-name");
+            const oldName = session.name;
+            nameEl.contentEditable = "true";
+            nameEl.focus();
+            // 选中全部文字
+            const range = document.createRange();
+            range.selectNodeContents(nameEl);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            const finish = () => {
+              nameEl.contentEditable = "false";
+              const newName = nameEl.textContent.trim();
+              if (newName && newName !== oldName) {
+                session.name = newName;
+                if (!session.emoji || session.emoji === oldName[0]) session.emoji = newName[0];
+                saveSessions();
+                loadActiveSession();
+              }
+              renderSessionList();
+            };
+            nameEl.addEventListener("blur", finish, { once: true });
+            nameEl.addEventListener("keydown", (ev) => {
+              if (ev.key === "Enter") { ev.preventDefault(); nameEl.blur(); }
+              if (ev.key === "Escape") { nameEl.textContent = oldName; nameEl.blur(); }
+            });
+          });
           item.addEventListener("click", (e) => {
             if (e.target.closest(".session-delete")) return;
             switchSession(session.id);
@@ -1420,17 +1523,25 @@
       }
 
       function switchSession(id) {
+        // 保存当前草稿
+        if (activeSessionId && messageInput.value.trim()) {
+          draftCache[activeSessionId] = messageInput.value;
+        }
         activeSessionId = id;
         saveSessions();
         renderSessionList();
         loadActiveSession();
+        // 恢复目标草稿
+        messageInput.value = draftCache[id] || "";
+        autoResize();
+        updateSendButton();
       }
 
       // ==================== 加载会话 ====================
       function loadActiveSession() {
         const session = getActiveSession();
         chatContainer
-          .querySelectorAll(".message-group, .time-wrapper")
+          .querySelectorAll(".message-group, .time-wrapper, .debug-panel")
           .forEach((el) => el.remove());
 
         if (!session) {
@@ -1445,6 +1556,7 @@
           $("settingsSessionInfo").textContent = "无";
           $("aiAvatarGroup").style.display = "none";
           $("aiColorGroup").style.display = "none";
+          $("promptEditGroup").style.display = "none";
           return;
         }
 
@@ -1468,6 +1580,10 @@
         // AI 颜色选择
         $("aiColorGroup").style.display = "block";
         renderColorPresets(session);
+
+        // System Prompt 编辑
+        $("promptEditGroup").style.display = "block";
+        $("promptEditInput").value = session.systemPrompt || "";
 
         $("welcomeAvatar").textContent = session.emoji;
         $("welcomeAvatar").style.background =
@@ -1580,14 +1696,26 @@
           aiMsg._debug = { requestBody, responseBody: "", sseChunks: [] };
           const startTime = Date.now();
 
-          const response = await fetch(DEEPSEEK_API_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify(requestBody),
-          });
+          // 429 自动重试（最多3次，指数退避）
+          let response, retries = 0;
+          while (retries < 3) {
+            response = await fetch(DEEPSEEK_API_URL, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify(requestBody),
+            });
+            if (response.status === 429) {
+              retries++;
+              const wait = Math.min(1000 * Math.pow(2, retries), 8000);
+              updateStreamMessage(aiElement, `⏳ 请求过于频繁，${wait / 1000}秒后重试 (${retries}/3)...`, false);
+              await new Promise(r => setTimeout(r, wait));
+              continue;
+            }
+            break;
+          }
 
           if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
@@ -1629,7 +1757,7 @@
           }
 
           aiMsg.content = fullContent;
-          aiMsg._debug.sseChunks = sseChunks;
+          aiMsg._debug.sseChunks = sseChunks.slice(-20); // 只保留最后20个chunk，防止localStorage溢出
           aiMsg._debug.responseBody = fullContent;
           aiMsg._debug.responseStatus = response.status;
           saveSessions();
@@ -1639,10 +1767,21 @@
           renderSessionList();
         } catch (error) {
           console.error("发送失败:", error);
-          session.messages.pop();
+          // 移除空的 AI 消息
+          if (session.messages.length > 0 && session.messages[session.messages.length - 1].role === "assistant" && !session.messages[session.messages.length - 1].content) {
+            session.messages.pop();
+          }
           saveSessions();
-          aiElement.remove();
-          showError(error.message || "发送失败了 💔");
+          // 显示重试按钮
+          const retryBtn = document.createElement("div");
+          retryBtn.style.cssText = "text-align:center;padding:8px 0;";
+          retryBtn.innerHTML = `<button style="background:rgba(255,59,48,0.1);color:#FF3B30;border:1px solid rgba(255,59,48,0.2);border-radius:16px;padding:6px 16px;font-size:13px;cursor:pointer;" onclick="this.parentElement.remove()">发送失败：${escapeHtml(error.message || '未知错误')} · <span style="text-decoration:underline;cursor:pointer;" class="retry-link">重试</span></button>`;
+          chatContainer.appendChild(retryBtn);
+          retryBtn.querySelector(".retry-link").addEventListener("click", () => {
+            retryBtn.remove();
+            sendMessage();
+          });
+          scrollToBottom();
         } finally {
           isStreaming = false;
           updateSendButton();
@@ -1660,10 +1799,13 @@
           group.innerHTML = `
           <div class="message-row user">
             <div class="avatar user-avatar">${userAvatar}</div>
-            <div class="bubble user-bubble">${formatContent(msg.content)}</div>
+            <div class="bubble user-bubble">${formatContent(msg.content)}<button class="copy-btn" title="复制">📋</button></div>
           </div>
         `;
           chatContainer.appendChild(group);
+          // 复制按钮
+          const ubtn = group.querySelector(".copy-btn");
+          if (ubtn) ubtn.addEventListener("click", (e) => { e.stopPropagation(); copyText(msg.content, ubtn); });
           scrollToBottom();
           return group;
 
@@ -1735,11 +1877,20 @@
             group.innerHTML = `
             <div class="message-row bot">
               <div class="avatar bot-avatar" style="background:linear-gradient(135deg,${session.color1},${session.color2})">${session.emoji}</div>
-              <div class="bubble bot-bubble">${formatContent(part.content)}</div>
+              <div class="bubble bot-bubble">${formatContent(part.content, true)}<button class="copy-btn" title="复制">📋</button></div>
               ${deleteBtn}
             </div>
           `;
             chatContainer.appendChild(group);
+
+            // 复制按钮事件
+            const copyBtn = group.querySelector(".copy-btn");
+            if (copyBtn) {
+              copyBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                copyText(part.content, copyBtn);
+              });
+            }
 
             if (isLast) {
               // 删除按钮事件
@@ -1796,75 +1947,86 @@
       }
 
       // ==================== 工具函数 ====================
-      function formatContent(text) {
+      function formatContent(text, stripTimestamps = false) {
         if (!text) return "";
 
-        // 1. 先提取并替换转账卡片（已收款）
-        // 格式: | ¥xxx.xxx 已收款 | / | :--- |
+        // 0. 如果 stripTimestamps=true，先移除时间戳（renderSplitMessages 已单独处理）
+        if (stripTimestamps) {
+          text = text.replace(/`\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?`/gi, "").trim();
+        }
+
+        // 1. 先提取并保护特殊块（转账卡片、代码块），用占位符替换
+        const blocks = [];
+        let blockId = 0;
+
+        // 保护代码块
+        text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+          const id = `__BLOCK_${blockId++}__`;
+          blocks.push({ id, html: `<pre style="background:rgba(255,107,157,0.08);border-radius:10px;padding:10px 12px;overflow-x:auto;margin:6px 0;font-size:13px;font-family:monospace;"><code>${code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>` });
+          return id;
+        });
+
+        // 保护转账卡片（已收款）
         text = text.replace(
           /\|\s*¥([\d.]+)\s*已收款\s*\|\s*\n?\s*\|\s*:?-+\s*\|/g,
           (match, amount) => {
-            return `<div class="transfer-card"><div class="transfer-icon">💰</div><div class="transfer-amount">¥${amount}</div><div class="transfer-status">已收款</div></div>`;
+            const id = `__BLOCK_${blockId++}__`;
+            blocks.push({ id, html: `<div class="transfer-card"><div class="transfer-icon">💰</div><div class="transfer-amount">¥${amount}</div><div class="transfer-status">已收款</div></div>` });
+            return id;
           },
         );
 
-        // 2. 提取待收款转账卡片
-        // 格式: | [转账] 待收款  xxx.xxx元  | / | :--- |
+        // 保护待收款转账卡片
         text = text.replace(
           /\|\s*\[转账\]\s*待收款\s+([\d.]+)元\s*\|\s*\n?\s*\|\s*:?-+\s*\|/g,
           (match, amount) => {
-            return `<div class="transfer-card pending"><div class="transfer-icon">📩</div><div class="transfer-amount">¥${amount}</div><div class="transfer-status">待收款 · 点击收取</div></div>`;
+            const id = `__BLOCK_${blockId++}__`;
+            blocks.push({ id, html: `<div class="transfer-card pending"><div class="transfer-icon">📩</div><div class="transfer-amount">¥${amount}</div><div class="transfer-status">待收款 · 点击收取</div></div>` });
+            return id;
           },
         );
 
-        // 3. 提取时间戳（反引号包裹的时间，如 `12:48 am`）
-        text = text.replace(
-          /`(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)`/gi,
-          (match, time) => {
-            return `<div class="chat-timestamp">${time}</div>`;
-          },
-        );
-
-        // 4. 提取旁白/动作描述（独立行的反引号内容）
-        // 匹配独立一行的 `旁白内容`（不是时间戳的）
-        text = text.replace(/^`([^`]+)`$/gm, (match, content) => {
-          // 排除已经被替换为时间戳的情况
-          if (content.match(/^\d{1,2}:\d{2}\s*(am|pm|AM|PM)?$/i)) return match;
-          return `<div class="narration">${content}</div>`;
-        });
-
-        // 5. 基础 HTML 转义
+        // 2. HTML 转义（在所有自定义替换之前，防止 XSS）
         text = text
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
 
-        // 6. Markdown 代码块（不影响上面的解析，因为已替换）
+        // 3. 旁白/动作描述（独立行的反引号内容，排除时间戳）
+        text = text.replace(/^`([^`]+)`$/gm, (match, content) => {
+          if (content.match(/^\d{1,2}:\d{2}\s*(am|pm|AM|PM)?$/i)) return match;
+          return `<div class="narration">${content}</div>`;
+        });
+
+        // 4. 时间戳（反引号包裹的时间）
         text = text.replace(
-          /```(\w*)\n([\s\S]*?)```/g,
-          '<pre style="background:rgba(255,107,157,0.08);border-radius:10px;padding:10px 12px;overflow-x:auto;margin:6px 0;font-size:13px;font-family:monospace;"><code>$2</code></pre>',
+          /`(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)`/gi,
+          (match, time) => `<div class="chat-timestamp">${time}</div>`,
         );
 
-        // 7. 行内代码（剩余的反引号）
+        // 5. 行内代码（剩余的反引号）
         text = text.replace(
           /`([^`]+)`/g,
           '<code style="background:rgba(255,107,157,0.08);padding:1px 5px;border-radius:4px;font-size:13px;">$1</code>',
         );
 
-        // 8. 粗体、斜体
+        // 6. 粗体、斜体
         text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
         text = text.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
-        // 9. 换行
+        // 7. 换行
         text = text.replace(/\n/g, "<br>");
+
+        // 8. 还原保护块
+        blocks.forEach(b => {
+          text = text.replace(b.id, b.html);
+        });
 
         return text;
       }
 
       function escapeHtml(str) {
-        const d = document.createElement("div");
-        d.textContent = str;
-        return d.innerHTML;
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
       function autoResize() {
@@ -1898,6 +2060,55 @@
         errorBanner.textContent = msg;
         errorBanner.style.display = "block";
         setTimeout(() => (errorBanner.style.display = "none"), 4000);
+      }
+
+      // ==================== 复制功能 ====================
+      function copyText(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.classList.add("copied");
+          btn.textContent = "✓";
+          setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "📋"; }, 1500);
+        }).catch(() => {
+          // fallback
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.cssText = "position:fixed;left:-9999px;";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          btn.classList.add("copied");
+          btn.textContent = "✓";
+          setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "📋"; }, 1500);
+        });
+      }
+
+      // ==================== 长按适配（移动端） ====================
+      function setupLongPress() {
+        let pressTimer = null;
+        document.addEventListener("touchstart", (e) => {
+          const row = e.target.closest(".message-row");
+          if (!row) return;
+          pressTimer = setTimeout(() => {
+            const copyBtn = row.querySelector(".copy-btn");
+            const delBtn = row.querySelector(".msg-delete-btn");
+            if (copyBtn) copyBtn.classList.add("visible");
+            if (delBtn) delBtn.classList.add("visible");
+            // 3秒后自动隐藏
+            setTimeout(() => {
+              if (copyBtn) copyBtn.classList.remove("visible");
+              if (delBtn) delBtn.classList.remove("visible");
+            }, 3000);
+          }, 500);
+        }, { passive: true });
+        document.addEventListener("touchend", () => clearTimeout(pressTimer));
+        document.addEventListener("touchmove", () => clearTimeout(pressTimer));
+        // 点击其他地方隐藏
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest(".copy-btn") && !e.target.closest(".msg-delete-btn")) {
+            document.querySelectorAll(".copy-btn.visible, .msg-delete-btn.visible").forEach(el => el.classList.remove("visible"));
+          }
+        });
       }
 
       // ==================== 颜色预设 ====================
@@ -1986,6 +2197,7 @@
       // ==================== 初始化 ====================
       function init() {
         createFloatingHearts();
+        setupLongPress();
         $("apiKeyInput").value = apiKey;
         renderSessionList();
         loadActiveSession();
@@ -2081,6 +2293,19 @@
           renderSessionList();
         });
 
+        // System Prompt 编辑
+        $("promptEditInput").addEventListener("input", () => {
+          const session = getActiveSession();
+          if (!session) return;
+          session.systemPrompt = $("promptEditInput").value;
+          saveSessions();
+          // 更新副标题
+          const subtitle = session.systemPrompt
+            ? (session.systemPrompt.length > 50 ? session.systemPrompt.slice(0, 50) + "..." : session.systemPrompt)
+            : "开始聊天吧";
+          $("welcomeSubtitle").textContent = subtitle;
+        });
+
         // 调试模式开关
         const debugToggle = $("debugModeToggle");
         const debugTrack = $("debugModeTrack");
@@ -2160,6 +2385,16 @@
           sendMessage();
           const r = sendBtn.getBoundingClientRect();
           spawnLoveEffect(r.left + r.width / 2, r.top);
+        });
+
+        // 键盘快捷键
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            newSessionModal.classList.remove("show");
+            settingsModal.classList.remove("show");
+            logModal.classList.remove("show");
+            closeSidebar();
+          }
         });
       }
 
