@@ -105,6 +105,215 @@
         display: none;
       }
 
+      /* ==================== Pink Theme ==================== */
+      [data-theme="pink"] {
+        --brand: #ff6b9d;
+        --brand-light: #ff8cb8;
+        --brand-subtle: rgba(255, 107, 157, 0.08);
+        --brand-hover: rgba(255, 107, 157, 0.12);
+        --brand-shadow: rgba(255, 107, 157, 0.25);
+        --brand-glow: rgba(255, 107, 157, 0.10);
+        --bg-primary: #faf5f7;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #fff0f5;
+        --text-primary: #1a1a2e;
+        --text-secondary: #8e8a9a;
+        --text-tertiary: #b0adc0;
+        --border-color: #f0e4ea;
+        --border-light: #f8f2f6;
+        --input-bg: #ffffff;
+        --header-bg: rgba(250, 245, 247, 0.88);
+        --shadow-bubble: 0 1px 4px rgba(255, 107, 157, 0.08), 0 4px 16px rgba(255, 107, 157, 0.06);
+        --shadow-card: 0 2px 12px rgba(0,0,0,0.06);
+        --shadow-elevated: 0 8px 32px rgba(0,0,0,0.08);
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="pink"] {
+          --brand: #ff6b9d;
+          --brand-light: #ff8cb8;
+          --brand-subtle: rgba(255, 107, 157, 0.12);
+          --brand-hover: rgba(255, 107, 157, 0.18);
+          --brand-shadow: rgba(255, 107, 157, 0.2);
+          --brand-glow: rgba(255, 107, 157, 0.15);
+          --bg-primary: #13111a;
+          --bg-secondary: #1e1b28;
+          --bg-tertiary: #262230;
+          --text-primary: #ede8f5;
+          --text-secondary: #7a7488;
+          --text-tertiary: #5a5568;
+          --border-color: #2e2a3a;
+          --border-light: #252230;
+          --input-bg: #1e1b28;
+          --header-bg: rgba(19, 17, 26, 0.88);
+          --shadow-bubble: 0 1px 4px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08);
+          --shadow-card: 0 2px 12px rgba(0,0,0,0.2);
+          --shadow-elevated: 0 8px 32px rgba(0,0,0,0.3);
+        }
+      }
+      /* 粉色主题：恢复浪漫背景和飘心 */
+      [data-theme="pink"] .romantic-bg {
+        background: radial-gradient(ellipse at 20% 50%, rgba(255,107,157,0.04) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.04) 0%, transparent 50%),
+                    radial-gradient(ellipse at 50% 80%, rgba(255,183,77,0.03) 0%, transparent 50%);
+      }
+      [data-theme="pink"] .floating-heart {
+        display: block;
+        position: absolute;
+        font-size: 14px;
+        opacity: 0;
+        animation: floatHeart linear infinite;
+        filter: blur(0.5px);
+        will-change: transform, opacity;
+      }
+      @keyframes floatHeart {
+        0% { opacity: 0; transform: translateY(100vh) rotate(0deg) scale(0.4); }
+        8% { opacity: 0.35; }
+        85% { opacity: 0.15; }
+        100% { opacity: 0; transform: translateY(-10vh) rotate(360deg) scale(0.8); }
+      }
+      /* 粉色主题：恢复发送飘心 */
+      [data-theme="pink"] .love-effect {
+        display: block;
+        position: fixed;
+        pointer-events: none;
+        z-index: 400;
+        font-size: 24px;
+        animation: loveFloat 1.5s ease-out forwards;
+      }
+      @keyframes loveFloat {
+        0% { opacity: 1; transform: translateY(0) scale(0.5); }
+        50% { opacity: 0.8; transform: translateY(-40px) scale(1.2); }
+        100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+      }
+      /* 粉色主题：恢复欢迎头像浮动 */
+      [data-theme="pink"] .welcome-avatar {
+        animation: avatarFloat 4s ease-in-out infinite;
+      }
+      @keyframes avatarFloat {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-4px) scale(1.03); }
+      }
+      /* 粉色主题：恢复渐变按钮 */
+      [data-theme="pink"] .new-chat-btn {
+        background: linear-gradient(135deg, #ff6b9d 0%, #e85d8a 100%);
+        box-shadow: 0 4px 16px rgba(255, 107, 157, 0.25);
+      }
+      [data-theme="pink"] .btn-primary {
+        background: linear-gradient(135deg, #ff6b9d 0%, #e85d8a 100%);
+        box-shadow: 0 4px 16px rgba(255, 107, 157, 0.2);
+      }
+      [data-theme="pink"] .bubble.user-bubble {
+        background: linear-gradient(135deg, #ff6b9d, #e85d8a);
+        box-shadow: 0 1px 4px rgba(255, 107, 157, 0.08), 0 4px 16px rgba(255, 107, 157, 0.06);
+      }
+      [data-theme="pink"] .send-btn {
+        background: linear-gradient(135deg, #ff6b9d, #e85d8a);
+        box-shadow: 0 2px 10px rgba(255, 107, 157, 0.2);
+      }
+      [data-theme="pink"] .send-btn.active {
+        box-shadow: 0 4px 16px rgba(255, 107, 157, 0.35);
+      }
+      [data-theme="pink"] .welcome h2 {
+        background: linear-gradient(135deg, #ff6b9d, #ff8cb8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      [data-theme="pink"] .welcome .greeting-text {
+        background: var(--bg-tertiary);
+        border: none;
+      }
+      [data-theme="pink"] .empty-btn {
+        background: linear-gradient(135deg, #ff6b9d, #e85d8a);
+      }
+      [data-theme="pink"] .settings-tab.active {
+        background: var(--brand);
+        box-shadow: 0 2px 8px rgba(255, 107, 157, 0.25);
+      }
+      [data-theme="pink"] .session-item.active {
+        box-shadow: inset 3px 0 0 var(--brand);
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="pink"] .session-item:hover,
+        [data-theme="pink"] .session-item.active {
+          background: rgba(255, 107, 157, 0.1);
+        }
+      }
+      /* 粉色主题：恢复转账卡片样式 */
+      [data-theme="pink"] .transfer-card {
+        background: linear-gradient(135deg, #fff9e6, #fff3cc);
+        border: 1px solid #ffd700;
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="pink"] .transfer-card {
+          background: linear-gradient(135deg, #2a2518, #332e1f);
+          border-color: #8b7d3c;
+        }
+      }
+      [data-theme="pink"] .transfer-card.pending {
+        background: linear-gradient(135deg, #f0f4ff, #e0e8ff);
+        border-color: #6c8eef;
+      }
+      @media (prefers-color-scheme: dark) {
+        [data-theme="pink"] .transfer-card.pending {
+          background: linear-gradient(135deg, #1a1f2e, #1e2538);
+          border-color: #4a6aaf;
+        }
+      }
+      /* 粉色主题：恢复旁白左边框颜色 */
+      [data-theme="pink"] .narration {
+        border-left-color: #ffb3d1;
+      }
+
+      /* ==================== Theme Switcher ==================== */
+      .theme-switcher {
+        display: flex;
+        gap: 8px;
+        padding: 4px;
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+      }
+      .theme-option {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 8px;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        transition: all 0.2s ease-out;
+        color: var(--text-secondary);
+      }
+      .theme-option:hover {
+        background: var(--bg-secondary);
+      }
+      .theme-option.active {
+        border-color: var(--brand);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        box-shadow: 0 0 0 1px var(--brand);
+      }
+      .theme-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1.5px solid var(--border-color);
+        overflow: hidden;
+        display: flex;
+      }
+      .theme-swatch-half {
+        flex: 1;
+        height: 100%;
+      }
+      .theme-option-label {
+        font-size: 12px;
+        font-weight: 500;
+      }
+
       /* ==================== Sidebar ==================== */
       .sidebar-overlay {
         position: fixed;
@@ -1259,6 +1468,25 @@
           <!-- Tab 2: 外观 -->
           <div class="settings-panel" id="panel-customize">
             <div class="form-group">
+              <label class="form-label"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg> 主题风格</label>
+              <div class="theme-switcher" id="themeSwitcher">
+                <button class="theme-option active" data-theme="default">
+                  <div class="theme-swatch">
+                    <div class="theme-swatch-half" style="background:#ffffff;border-right:1px solid #e5e7eb;"></div>
+                    <div class="theme-swatch-half" style="background:#2563EB;"></div>
+                  </div>
+                  <span class="theme-option-label">简约</span>
+                </button>
+                <button class="theme-option" data-theme="pink">
+                  <div class="theme-swatch">
+                    <div class="theme-swatch-half" style="background:#faf5f7;border-right:1px solid #f0e4ea;"></div>
+                    <div class="theme-swatch-half" style="background:#ff6b9d;"></div>
+                  </div>
+                  <span class="theme-option-label">浪漫</span>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
               <label class="form-label"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 我的头像</label>
               <div style="display:flex;align-items:center;gap:10px;">
                 <div id="userAvatarPreview" class="avatar user-avatar" style="width:40px;height:40px;font-size:18px;">我</div>
@@ -2345,6 +2573,35 @@
 
       // ==================== 初始化 ====================
       function init() {
+        // ==================== 主题切换 ====================
+        let currentTheme = localStorage.getItem("appTheme") || "default";
+        function applyTheme(theme) {
+          currentTheme = theme;
+          if (theme === "default") {
+            document.documentElement.removeAttribute("data-theme");
+          } else {
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+          localStorage.setItem("appTheme", theme);
+          // 更新主题选择器 UI
+          document.querySelectorAll(".theme-option").forEach(opt => {
+            opt.classList.toggle("active", opt.dataset.theme === theme);
+          });
+          // 更新 theme-color meta
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) {
+            meta.content = theme === "pink" ? "#faf5f7" : "#ffffff";
+          }
+        }
+        applyTheme(currentTheme);
+
+        // 主题切换按钮事件
+        document.querySelectorAll(".theme-option").forEach(opt => {
+          opt.addEventListener("click", () => {
+            applyTheme(opt.dataset.theme);
+          });
+        });
+
         createFloatingHearts();
         setupLongPress();
 
