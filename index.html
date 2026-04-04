@@ -950,6 +950,70 @@
         border-radius: 10px;
         display: inline-block;
       }
+
+      /* 消息删除按钮 */
+      .msg-delete-btn {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #FF3B30;
+        color: white;
+        border: 2px solid var(--bg-primary);
+        font-size: 11px;
+        line-height: 18px;
+        text-align: center;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+      }
+      .message-row.assistant { position: relative; }
+      .message-row.assistant:hover .msg-delete-btn { display: block; }
+
+      /* 调试面板 */
+      .debug-panel {
+        margin: 4px 0 8px 48px;
+        background: rgba(0,0,0,0.04);
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 12px;
+      }
+      @media (prefers-color-scheme: dark) {
+        .debug-panel { background: rgba(255,255,255,0.05); }
+      }
+      .debug-panel-header {
+        display: flex;
+        gap: 12px;
+        padding: 6px 10px;
+        cursor: pointer;
+        color: var(--text-secondary);
+        user-select: none;
+      }
+      .debug-panel-header:hover { color: var(--text-primary); }
+      .debug-panel-body {
+        display: none;
+        padding: 0 10px 8px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .debug-panel.open .debug-panel-body { display: block; }
+      .debug-section { margin-top: 6px; }
+      .debug-section-title { font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
+      .debug-pre {
+        white-space: pre-wrap;
+        word-break: break-all;
+        font-family: monospace;
+        font-size: 11px;
+        line-height: 1.4;
+        color: var(--text-primary);
+        background: rgba(0,0,0,0.03);
+        padding: 6px 8px;
+        border-radius: 6px;
+        max-height: 150px;
+        overflow-y: auto;
+      }
     </style>
   </head>
   <body>
@@ -1038,10 +1102,39 @@
               无
             </p>
           </div>
+          <div class="form-group">
+            <label class="form-label">🧑 我的头像</label>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="userAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#B8A9FF,#8B7FE8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(139,127,232,0.25);">我</div>
+              <input type="text" class="form-input" id="userAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
+            </div>
+          </div>
           <button class="btn-danger" id="clearCurrentChat">
             清除当前对话记录
           </button>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn-primary" id="exportData" style="flex:1;font-size:13px;padding:8px;">📤 导出对话</button>
+            <button class="btn-primary" id="importData" style="flex:1;font-size:13px;padding:8px;background:var(--pink-500);">📥 导入对话</button>
+            <button class="btn-primary" id="openLogBtn" style="flex:1;font-size:13px;padding:8px;background:#667eea;">📡 API 日志</button>
+            <input type="file" id="importFile" accept=".json" style="display:none;" />
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- API 日志弹窗 -->
+    <div class="modal-overlay" id="logModal">
+      <div class="modal" style="max-width:700px;max-height:85vh;display:flex;flex-direction:column;">
+        <div class="modal-header">
+          <h3 style="margin:0;font-size:17px;">📡 API 调用日志</h3>
+          <button class="modal-close" id="closeLog">✕</button>
+        </div>
+        <div style="padding:8px 16px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border-color);">
+          <span style="font-size:13px;color:var(--text-secondary);" id="logCount">0 条记录</span>
+          <div style="flex:1;"></div>
+          <button class="btn-danger" id="clearLogs" style="font-size:12px;padding:4px 12px;">清空日志</button>
+        </div>
+        <div id="logList" style="flex:1;overflow-y:auto;padding:12px 16px;"></div>
       </div>
     </div>
 
@@ -1121,6 +1214,9 @@
       let activeSessionId = localStorage.getItem("activeSessionId") || null;
       let isStreaming = false;
       let apiKey = localStorage.getItem("deepseekApiKey") || "";
+      let userAvatar = localStorage.getItem("userAvatar") || "我";
+      let debugMode = localStorage.getItem("debugMode") === "true";
+      let apiLogs = JSON.parse(localStorage.getItem("apiLogs") || "[]");
 
       function getActiveSession() {
         return sessions.find((s) => s.id === activeSessionId) || null;
@@ -1148,6 +1244,7 @@
       const sessionList = $("sessionList");
       const newSessionModal = $("newSessionModal");
       const settingsModal = $("settingsModal");
+      const logModal = $("logModal");
       const errorBanner = $("errorBanner");
       const romanticBg = $("romanticBg");
 
@@ -1207,7 +1304,7 @@
           const preview =
             lastMsg.length > 30 ? lastMsg.slice(0, 30) + "..." : lastMsg;
           item.innerHTML = `
-          <div class="session-avatar" style="background:linear-gradient(135deg,${session.color1 || "#FFD700"},${session.color2 || "#FFA500"})">${session.emoji || "🤖"}</div>
+          <div class="session-avatar" style="background:linear-gradient(135deg,${session.color1 || "#FFD700"},${session.color2 || "#FFA500"})">${session.emoji || session.name[0]}</div>
           <div class="session-info">
             <div class="session-name">${escapeHtml(session.name)}</div>
             <div class="session-preview">${escapeHtml(preview)}</div>
@@ -1246,7 +1343,7 @@
         const session = {
           id: generateId(),
           name: name || "未命名",
-          emoji: emoji || "🤖",
+          emoji: emoji || name[0],
           systemPrompt: systemPrompt || "",
           color1: c1,
           color2: c2,
@@ -1410,19 +1507,23 @@
             ...history.map((m) => ({ role: m.role, content: m.content })),
           );
 
+          const requestBody = {
+            model: "deepseek-chat",
+            messages: finalMessages,
+            temperature: 0.4,
+            max_tokens: 2048,
+            stream: true,
+          };
+          aiMsg._debug = { requestBody, responseBody: "", sseChunks: [] };
+          const startTime = Date.now();
+
           const response = await fetch(DEEPSEEK_API_URL, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
-              model: "deepseek-chat",
-              messages: finalMessages,
-              temperature: 0.4,
-              max_tokens: 2048,
-              stream: true,
-            }),
+            body: JSON.stringify(requestBody),
           });
 
           if (!response.ok) {
@@ -1436,11 +1537,14 @@
           const decoder = new TextDecoder();
           let buffer = "",
             fullContent = "";
+          const sseChunks = [];
 
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            buffer += decoder.decode(value, { stream: true });
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+            sseChunks.push(chunk);
             const lines = buffer.split("\n");
             buffer = lines.pop() || "";
             for (const line of lines) {
@@ -1462,7 +1566,12 @@
           }
 
           aiMsg.content = fullContent;
+          aiMsg._debug.sseChunks = sseChunks;
+          aiMsg._debug.responseBody = fullContent;
+          aiMsg._debug.responseStatus = response.status;
           saveSessions();
+          // 记录 API 日志
+          addApiLog({ sessionName: session.name, status: response.status, duration: Date.now() - startTime, requestBody, responseBody: fullContent });
           updateStreamMessage(aiElement, fullContent, true);
           renderSessionList();
         } catch (error) {
@@ -1491,7 +1600,7 @@
         const isUser = msg.role === "user";
         group.innerHTML = `
         <div class="message-row ${msg.role}">
-          <div class="avatar ${isUser ? "user-avatar" : "bot-avatar"}" ${!isUser ? `style="background:linear-gradient(135deg,${session.color1},${session.color2})"` : ""}>${isUser ? "🌸" : session.emoji}</div>
+          <div class="avatar ${isUser ? "user-avatar" : "bot-avatar"}" ${!isUser ? `style="background:linear-gradient(135deg,${session.color1},${session.color2})"` : ""}>${isUser ? userAvatar : session.emoji}</div>
           <div class="bubble ${isUser ? "user-bubble" : "bot-bubble"}">
             ${isStreaming ? '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' : formatContent(msg.content)}
           </div>
@@ -1617,6 +1726,60 @@
         setTimeout(() => (errorBanner.style.display = "none"), 4000);
       }
 
+      // ==================== 删除单条 AI 回复 ====================
+      function deleteMessagePair(session, aiMsgIndex) {
+        if (aiMsgIndex < 0 || aiMsgIndex >= session.messages.length) return;
+        let userMsgIndex = -1;
+        for (let i = aiMsgIndex - 1; i >= 0; i--) {
+          if (session.messages[i].role === "user") { userMsgIndex = i; break; }
+        }
+        const userContent = userMsgIndex >= 0 ? session.messages[userMsgIndex].content : "";
+        session.messages.splice(aiMsgIndex, 1);
+        if (userMsgIndex >= 0) session.messages.splice(userMsgIndex, 1);
+        saveSessions();
+        messageInput.value = userContent;
+        autoResize();
+        updateSendButton();
+        loadActiveSession();
+        renderSessionList();
+      }
+
+      // ==================== API 日志 ====================
+      function addApiLog(log) {
+        log.id = generateId();
+        log.time = new Date().toLocaleString("zh-CN");
+        apiLogs.unshift(log);
+        if (apiLogs.length > 100) apiLogs = apiLogs.slice(0, 100);
+        localStorage.setItem("apiLogs", JSON.stringify(apiLogs));
+      }
+
+      function renderLogs() {
+        const list = $("logList");
+        $("logCount").textContent = apiLogs.length + " 条记录";
+        if (apiLogs.length === 0) {
+          list.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:40px 0;">暂无日志</div>';
+          return;
+        }
+        list.innerHTML = apiLogs.map(log => `
+          <div style="margin-bottom:12px;border:1px solid var(--border-color);border-radius:10px;overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(0,0,0,0.03);cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+              <span style="font-size:13px;font-weight:600;">${escapeHtml(log.sessionName || '未知')}</span>
+              <span style="font-size:12px;color:var(--text-secondary);">${log.time} · HTTP ${log.status || '?'} · ${log.duration || '?'}ms</span>
+            </div>
+            <div style="display:none;padding:8px 12px;">
+              <div style="margin-bottom:8px;">
+                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">📤 请求体</div>
+                <pre style="white-space:pre-wrap;word-break:break-all;font-size:11px;font-family:monospace;background:rgba(0,0,0,0.03);padding:8px;border-radius:6px;max-height:200px;overflow-y:auto;margin:0;">${escapeHtml(JSON.stringify(log.requestBody, null, 2))}</pre>
+              </div>
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">📥 返回体</div>
+                <pre style="white-space:pre-wrap;word-break:break-all;font-size:11px;font-family:monospace;background:rgba(0,0,0,0.03);padding:8px;border-radius:6px;max-height:200px;overflow-y:auto;margin:0;">${escapeHtml(typeof log.responseBody === 'string' ? log.responseBody : JSON.stringify(log.responseBody, null, 2))}</pre>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
       // ==================== 初始化 ====================
       function init() {
         createFloatingHearts();
@@ -1652,7 +1815,7 @@
 
         $("createSessionBtn").addEventListener("click", () => {
           const name = $("sessionNameInput").value.trim();
-          const emoji = $("sessionEmojiInput").value.trim() || "🤖";
+          const emoji = $("sessionEmojiInput").value.trim();
           const prompt = $("sessionPromptInput").value.trim();
           if (!name) {
             $("sessionNameInput").style.borderColor = "#FF3B30";
@@ -1692,6 +1855,66 @@
             renderSessionList();
           }
           settingsModal.classList.remove("show");
+        });
+
+        // 用户头像编辑
+        $("userAvatarInput").value = userAvatar;
+        $("userAvatarPreview").textContent = userAvatar;
+        $("userAvatarInput").addEventListener("input", () => {
+          userAvatar = $("userAvatarInput").value.trim() || "我";
+          localStorage.setItem("userAvatar", userAvatar);
+          $("userAvatarPreview").textContent = userAvatar;
+          loadActiveSession();
+        });
+
+        // 导出对话
+        $("exportData").addEventListener("click", () => {
+          const data = { sessions, activeSessionId, userAvatar, exportTime: new Date().toISOString() };
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "chat-backup-" + new Date().toLocaleDateString("zh-CN").replace(/\//g, "-") + ".json";
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+
+        // 导入对话
+        $("importData").addEventListener("click", () => $("importFile").click());
+        $("importFile").addEventListener("change", (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              const data = JSON.parse(ev.target.result);
+              if (!data.sessions || !Array.isArray(data.sessions)) { showError("文件格式不正确"); return; }
+              sessions = data.sessions;
+              activeSessionId = data.activeSessionId || (sessions.length > 0 ? sessions[0].id : null);
+              if (data.userAvatar) { userAvatar = data.userAvatar; localStorage.setItem("userAvatar", userAvatar); }
+              saveSessions();
+              renderSessionList();
+              loadActiveSession();
+              settingsModal.classList.remove("show");
+              showError("导入成功 ✅");
+            } catch (err) { showError("导入失败：文件格式不正确"); }
+          };
+          reader.readAsText(file);
+          e.target.value = "";
+        });
+
+        // API 日志
+        $("openLogBtn").addEventListener("click", () => {
+          settingsModal.classList.remove("show");
+          renderLogs();
+          logModal.classList.add("show");
+        });
+        $("closeLog").addEventListener("click", () => logModal.classList.remove("show"));
+        logModal.addEventListener("click", (e) => { if (e.target === logModal) logModal.classList.remove("show"); });
+        $("clearLogs").addEventListener("click", () => {
+          apiLogs = [];
+          localStorage.removeItem("apiLogs");
+          renderLogs();
         });
 
         // 输入
