@@ -1109,6 +1109,17 @@
               <input type="text" class="form-input" id="userAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
             </div>
           </div>
+          <div class="form-group" id="aiAvatarGroup" style="display:none;">
+            <label class="form-label">🤖 AI 头像</label>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="aiAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA500);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(255,107,157,0.25);">🤖</div>
+              <input type="text" class="form-input" id="aiAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
+            </div>
+          </div>
+          <div class="form-group" id="aiColorGroup" style="display:none;">
+            <label class="form-label">🎨 AI 头像颜色</label>
+            <div id="colorPresets" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
           <div class="form-group">
             <label class="form-label" style="margin-bottom:0;display:flex;justify-content:space-between;align-items:center;">
               🔧 调试模式
@@ -1403,6 +1414,8 @@
             "linear-gradient(135deg, #ccc, #999)";
           $("moodText").textContent = "";
           $("settingsSessionInfo").textContent = "无";
+          $("aiAvatarGroup").style.display = "none";
+          $("aiColorGroup").style.display = "none";
           return;
         }
 
@@ -1416,6 +1429,16 @@
           `linear-gradient(135deg, ${session.color1}, ${session.color2})`;
         $("settingsSessionInfo").textContent =
           `${session.name}（${session.messages.length} 条消息）`;
+
+        // AI 头像编辑
+        $("aiAvatarGroup").style.display = "block";
+        $("aiAvatarInput").value = session.emoji || "";
+        $("aiAvatarPreview").textContent = session.emoji || session.name[0];
+        $("aiAvatarPreview").style.background = `linear-gradient(135deg, ${session.color1}, ${session.color2})`;
+
+        // AI 颜色选择
+        $("aiColorGroup").style.display = "block";
+        renderColorPresets(session);
 
         $("welcomeAvatar").textContent = session.emoji;
         $("welcomeAvatar").style.background =
@@ -1848,6 +1871,35 @@
         setTimeout(() => (errorBanner.style.display = "none"), 4000);
       }
 
+      // ==================== 颜色预设 ====================
+      const MACARON_COLORS = [
+        ["#FFD700","#FFA500"], ["#FF6B9D","#FF8CB8"], ["#667eea","#764ba2"],
+        ["#43e97b","#38f9d7"], ["#fa709a","#fee140"], ["#a18cd1","#fbc2eb"],
+        ["#f093fb","#f5576c"], ["#4facfe","#00f2fe"], ["#FF9A9E","#FECFEF"],
+        ["#A8EDEA","#FED6E3"], ["#D4FC79","#96E6A1"], ["#84FAB0","#8FD3F4"],
+        ["#FBC2EB","#A6C1EE"], ["#FDDB92","#D1FDFF"], ["#F6D365","#FDA085"],
+        ["#FCCB90","#D57EEB"], ["#E0C3FC","#8EC5FC"], ["#F5576C","#FF6B6B"],
+        ["#C471F5","#FA71CD"], ["#48C6EF","#6F86D6"],
+      ];
+
+      function renderColorPresets(session) {
+        const container = $("colorPresets");
+        container.innerHTML = "";
+        MACARON_COLORS.forEach(([c1, c2]) => {
+          const isActive = session.color1 === c1 && session.color2 === c2;
+          const btn = document.createElement("div");
+          btn.style.cssText = `width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${c1},${c2});cursor:pointer;border:2px solid ${isActive ? 'var(--pink-500)' : 'transparent'};box-shadow:${isActive ? '0 0 0 2px var(--bg-primary), 0 0 0 4px var(--pink-500)' : 'none'};transition:.2s;flex-shrink:0;`;
+          btn.addEventListener("click", () => {
+            session.color1 = c1;
+            session.color2 = c2;
+            saveSessions();
+            loadActiveSession();
+            renderSessionList();
+          });
+          container.appendChild(btn);
+        });
+      }
+
       // ==================== 删除单条 AI 回复 ====================
       function deleteMessagePair(session, aiMsgIndex) {
         if (aiMsgIndex < 0 || aiMsgIndex >= session.messages.length) return;
@@ -1987,6 +2039,17 @@
           localStorage.setItem("userAvatar", userAvatar);
           $("userAvatarPreview").textContent = userAvatar;
           loadActiveSession();
+        });
+
+        // AI 头像编辑
+        $("aiAvatarInput").addEventListener("input", () => {
+          const session = getActiveSession();
+          if (!session) return;
+          session.emoji = $("aiAvatarInput").value.trim() || session.name[0];
+          saveSessions();
+          $("aiAvatarPreview").textContent = session.emoji;
+          loadActiveSession();
+          renderSessionList();
         });
 
         // 调试模式开关
