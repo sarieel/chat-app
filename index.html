@@ -969,8 +969,8 @@
         display: none;
         z-index: 10;
       }
-      .message-row.assistant { position: relative; }
-      .message-row.assistant:hover .msg-delete-btn { display: block; }
+      .message-row.bot { position: relative; }
+      .message-row.bot:hover .msg-delete-btn { display: block; }
 
       /* 调试面板 */
       .debug-panel {
@@ -1108,6 +1108,17 @@
               <div id="userAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#B8A9FF,#8B7FE8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(139,127,232,0.25);">我</div>
               <input type="text" class="form-input" id="userAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="margin-bottom:0;display:flex;justify-content:space-between;align-items:center;">
+              🔧 调试模式
+              <label style="position:relative;width:44px;height:24px;display:inline-block;cursor:pointer;">
+                <input type="checkbox" id="debugModeToggle" style="opacity:0;width:0;height:0;" />
+                <span id="debugModeTrack" style="position:absolute;inset:0;background:var(--border-color);border-radius:12px;transition:.3s;"></span>
+                <span id="debugModeKnob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+              </label>
+            </label>
+            <p class="form-hint" style="margin-top:-4px;margin-bottom:12px;">开启后可查看 API 请求/响应，hover AI 气泡可删除单条回复</p>
           </div>
           <button class="btn-danger" id="clearCurrentChat">
             清除当前对话记录
@@ -1490,6 +1501,7 @@
         const aiMsg = { role: "assistant", content: "", timestamp: Date.now() };
         session.messages.push(aiMsg);
         const aiElement = appendMessage(aiMsg, session, true);
+        aiElement._session = session;
 
         try {
           // 构建消息列表
@@ -1501,8 +1513,7 @@
             });
           }
           const history = session.messages
-            .filter((m) => m.role !== "assistant" || m.content)
-            .slice(0, -1);
+            .filter((m) => m.role !== "assistant" || m.content);
           finalMessages.push(
             ...history.map((m) => ({ role: m.role, content: m.content })),
           );
@@ -1588,36 +1599,147 @@
 
       // ==================== 消息渲染 ====================
       function appendMessage(msg, session, isStreaming = false) {
-        if (msg.timestamp) {
-          const tw = document.createElement("div");
-          tw.className = "time-wrapper";
-          tw.innerHTML = `<span class="message-time">${formatTime(msg.timestamp)}</span>`;
-          chatContainer.appendChild(tw);
-        }
-
-        const group = document.createElement("div");
-        group.className = "message-group";
         const isUser = msg.role === "user";
-        group.innerHTML = `
-        <div class="message-row ${msg.role}">
-          <div class="avatar ${isUser ? "user-avatar" : "bot-avatar"}" ${!isUser ? `style="background:linear-gradient(135deg,${session.color1},${session.color2})"` : ""}>${isUser ? userAvatar : session.emoji}</div>
-          <div class="bubble ${isUser ? "user-bubble" : "bot-bubble"}">
-            ${isStreaming ? '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>' : formatContent(msg.content)}
+
+        if (isUser) {
+          // 用户消息：单个气泡
+          const group = document.createElement("div");
+          group.className = "message-group";
+          group.innerHTML = `
+          <div class="message-row user">
+            <div class="avatar user-avatar">${userAvatar}</div>
+            <div class="bubble user-bubble">${formatContent(msg.content)}</div>
           </div>
-        </div>
-      `;
-        chatContainer.appendChild(group);
-        scrollToBottom();
-        return group;
+        `;
+          chatContainer.appendChild(group);
+          scrollToBottom();
+          return group;
+
+        } else if (isStreaming) {
+          // AI 流式消息：占位容器
+          const wrapper = document.createElement("div");
+          wrapper.className = "message-group";
+          wrapper.innerHTML = `
+          <div class="message-row bot">
+            <div class="avatar bot-avatar" style="background:linear-gradient(135deg,${session.color1},${session.color2})">${session.emoji}</div>
+            <div class="bubble bot-bubble">
+              <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+            </div>
+          </div>
+        `;
+          chatContainer.appendChild(wrapper);
+          scrollToBottom();
+          return wrapper;
+
+        } else {
+          // AI 历史消息：按时间戳和空行拆分渲染
+          const msgIndex = session.messages.indexOf(msg);
+          renderSplitMessages(msg.content, session, msgIndex);
+          scrollToBottom();
+          return chatContainer.lastElementChild;
+        }
+      }
+
+      // 按时间戳和空行拆分 AI 回复为多个独立气泡
+      function renderSplitMessages(text, session, msgIndex = -1) {
+        const timeRegex = /`(\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?)`/gi;
+        const segments = [];
+        let lastIndex = 0, match;
+        while ((match = timeRegex.exec(text)) !== null) {
+          if (match.index > lastIndex) segments.push({ time: null, content: text.slice(lastIndex, match.index) });
+          segments.push({ time: match[1], content: "" });
+          lastIndex = match.index + match[0].length;
+        }
+        if (lastIndex < text.length) segments.push({ time: null, content: text.slice(lastIndex) });
+
+        const finalParts = [];
+        segments.forEach(seg => {
+          if (seg.time) finalParts.push({ time: seg.time, content: "" });
+          if (!seg.content.trim()) return;
+          seg.content.split(/\n{2,}/).forEach(sub => {
+            const t = sub.trim();
+            if (t) finalParts.push({ time: null, content: t });
+          });
+        });
+
+        let renderedCount = 0;
+        const totalParts = finalParts.filter(p => p.content).length;
+        finalParts.forEach(part => {
+          if (part.time) {
+            const tw = document.createElement("div");
+            tw.className = "time-wrapper";
+            tw.innerHTML = `<span class="message-time">${part.time}</span>`;
+            chatContainer.appendChild(tw);
+          }
+          if (part.content) {
+            renderedCount++;
+            const isLast = renderedCount === totalParts;
+            const group = document.createElement("div");
+            group.className = "message-group";
+            let deleteBtn = "";
+            if (isLast && msgIndex >= 0) {
+              deleteBtn = `<button class="msg-delete-btn" data-idx="${msgIndex}" title="删除此轮对话">✕</button>`;
+            }
+            group.innerHTML = `
+            <div class="message-row bot">
+              <div class="avatar bot-avatar" style="background:linear-gradient(135deg,${session.color1},${session.color2})">${session.emoji}</div>
+              <div class="bubble bot-bubble">${formatContent(part.content)}</div>
+              ${deleteBtn}
+            </div>
+          `;
+            chatContainer.appendChild(group);
+
+            if (isLast) {
+              // 删除按钮事件
+              const delBtn = group.querySelector(".msg-delete-btn");
+              if (delBtn) {
+                delBtn.addEventListener("click", (e) => {
+                  e.stopPropagation();
+                  deleteMessagePair(session, parseInt(delBtn.dataset.idx));
+                });
+              }
+              // 调试面板
+              if (debugMode && msgIndex >= 0 && session.messages[msgIndex]) {
+                const msg = session.messages[msgIndex];
+                const dbg = msg._debug;
+                const hasRequest = dbg && dbg.requestBody;
+                const hasSse = dbg && dbg.sseChunks && dbg.sseChunks.length > 0;
+                const panel = document.createElement("div");
+                panel.className = "debug-panel";
+                panel.innerHTML = `
+                  <div class="debug-panel-header">🔧 调试信息 ▾</div>
+                  <div class="debug-panel-body">
+                    <div class="debug-section">
+                      <div class="debug-section-title">📤 请求体</div>
+                      <div class="debug-pre">${hasRequest ? escapeHtml(JSON.stringify(dbg.requestBody, null, 2)) : '<span style="color:var(--text-secondary);">无数据</span>'}</div>
+                    </div>
+                    <div class="debug-section">
+                      <div class="debug-section-title">📥 返回体</div>
+                      <div class="debug-pre">${escapeHtml(msg.content || "(空)")}</div>
+                    </div>
+                    ${hasSse ? `<div class="debug-section"><div class="debug-section-title">📡 SSE 原始流 (${dbg.sseChunks.length} chunks)</div><div class="debug-pre">${escapeHtml(dbg.sseChunks.join(""))}</div></div>` : ""}
+                    ${dbg && dbg.responseStatus ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">HTTP ${dbg.responseStatus}</div>` : ""}
+                  </div>
+                `;
+                chatContainer.appendChild(panel);
+                panel.querySelector(".debug-panel-header").addEventListener("click", () => panel.classList.toggle("open"));
+              }
+            }
+          }
+        });
       }
 
       function updateStreamMessage(el, content, isFinal = false) {
-        const bubble = el.querySelector(".bubble");
-        bubble.innerHTML =
-          formatContent(content) +
-          (isFinal
-            ? ""
-            : '<span style="display:inline-block;width:2px;height:14px;background:var(--pink-400);margin-left:2px;animation:pulse 0.8s infinite;vertical-align:middle;border-radius:1px;"></span>');
+        if (isFinal) {
+          // 流式结束，拆分为多气泡
+          el.remove();
+          renderSplitMessages(content, el._session);
+        } else {
+          const bubble = el.querySelector(".bubble");
+          bubble.innerHTML =
+            formatContent(content) +
+            '<span style="display:inline-block;width:2px;height:14px;background:var(--pink-400);margin-left:2px;animation:pulse 0.8s infinite;vertical-align:middle;border-radius:1px;"></span>';
+        }
         scrollToBottom();
       }
 
@@ -1864,6 +1986,20 @@
           userAvatar = $("userAvatarInput").value.trim() || "我";
           localStorage.setItem("userAvatar", userAvatar);
           $("userAvatarPreview").textContent = userAvatar;
+          loadActiveSession();
+        });
+
+        // 调试模式开关
+        const debugToggle = $("debugModeToggle");
+        const debugTrack = $("debugModeTrack");
+        const debugKnob = $("debugModeKnob");
+        debugToggle.checked = debugMode;
+        if (debugMode) { debugTrack.style.background = "var(--pink-500)"; debugKnob.style.left = "22px"; }
+        debugToggle.addEventListener("change", () => {
+          debugMode = debugToggle.checked;
+          localStorage.setItem("debugMode", debugMode);
+          debugTrack.style.background = debugMode ? "var(--pink-500)" : "var(--border-color)";
+          debugKnob.style.left = debugMode ? "22px" : "2px";
           loadActiveSession();
         });
 
