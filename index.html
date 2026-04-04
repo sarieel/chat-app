@@ -97,6 +97,7 @@
         opacity: 0;
         animation: floatHeart linear infinite;
         filter: blur(0.5px);
+        will-change: transform, opacity;
       }
       @keyframes floatHeart {
         0% {
@@ -794,6 +795,40 @@
       .form-group {
         margin-bottom: 16px;
       }
+      /* 设置弹窗 Tab */
+      .settings-tabs {
+        display: flex;
+        gap: 0;
+        margin: 0 16px 16px;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: 3px;
+        border: 1px solid var(--border-color);
+      }
+      .settings-tab {
+        flex: 1;
+        padding: 8px 0;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: 10px;
+        transition: all 0.2s;
+        border: none;
+        background: transparent;
+      }
+      .settings-tab.active {
+        background: var(--pink-500);
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 107, 157, 0.25);
+      }
+      .settings-panel {
+        display: none;
+      }
+      .settings-panel.active {
+        display: block;
+      }
       .form-label {
         display: block;
         font-size: 14px;
@@ -1066,7 +1101,9 @@
         display: none;
         z-index: 10;
       }
+      .message-row.user,
       .message-row.bot { position: relative; }
+      .message-row.user:hover .msg-delete-btn,
       .message-row.bot:hover .msg-delete-btn,
       .msg-delete-btn.visible { display: block; }
 
@@ -1180,68 +1217,70 @@
           <h3>⚙️ 设置</h3>
           <button class="modal-close" id="closeSettings">完成</button>
         </div>
+        <div class="settings-tabs">
+          <button class="settings-tab active" data-tab="account">账号</button>
+          <button class="settings-tab" data-tab="customize">外观</button>
+          <button class="settings-tab" data-tab="data">数据</button>
+        </div>
         <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">🔑 DeepSeek API Key</label>
-            <input
-              type="password"
-              class="form-input"
-              id="apiKeyInput"
-              placeholder="sk-..."
-            />
-            <p class="form-hint">保存在浏览器本地，不会上传到任何服务器</p>
-          </div>
-          <div class="form-group">
-            <label class="form-label">当前会话</label>
-            <p
-              style="font-size: 14px; color: var(--text-secondary)"
-              id="settingsSessionInfo"
-            >
-              无
-            </p>
-          </div>
-          <div class="form-group">
-            <label class="form-label">🧑 我的头像</label>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div id="userAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#B8A9FF,#8B7FE8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(139,127,232,0.25);">我</div>
-              <input type="text" class="form-input" id="userAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
+          <!-- Tab 1: 账号 -->
+          <div class="settings-panel active" id="panel-account">
+            <div class="form-group">
+              <label class="form-label">🔑 DeepSeek API Key</label>
+              <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-..." />
+              <p class="form-hint">保存在浏览器本地，不会上传到任何服务器</p>
             </div>
-          </div>
-          <div class="form-group" id="aiAvatarGroup" style="display:none;">
-            <label class="form-label">🤖 AI 头像</label>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div id="aiAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA500);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(255,107,157,0.25);">🤖</div>
-              <input type="text" class="form-input" id="aiAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
+            <div class="form-group">
+              <label class="form-label">当前会话</label>
+              <p style="font-size:14px;color:var(--text-secondary);" id="settingsSessionInfo">无</p>
             </div>
-          </div>
-          <div class="form-group" id="aiColorGroup" style="display:none;">
-            <label class="form-label">🎨 AI 头像颜色</label>
-            <div id="colorPresets" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-          </div>
-          <div class="form-group" id="promptEditGroup" style="display:none;">
-            <label class="form-label">📝 人设指令 (System Prompt)</label>
-            <textarea class="form-input form-textarea" id="promptEditInput" placeholder="输入 AI 的角色设定..." style="min-height:80px;"></textarea>
-            <p class="form-hint">修改后立即生效</p>
-          </div>
-          <div class="form-group">
-            <label class="form-label" style="margin-bottom:0;display:flex;justify-content:space-between;align-items:center;">
-              🔧 调试模式
-              <label style="position:relative;width:44px;height:24px;display:inline-block;cursor:pointer;">
-                <input type="checkbox" id="debugModeToggle" style="opacity:0;width:0;height:0;" />
-                <span id="debugModeTrack" style="position:absolute;inset:0;background:var(--border-color);border-radius:12px;transition:.3s;"></span>
-                <span id="debugModeKnob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+            <div class="form-group" id="promptEditGroup" style="display:none;">
+              <label class="form-label">📝 人设指令 (System Prompt)</label>
+              <textarea class="form-input form-textarea" id="promptEditInput" placeholder="输入 AI 的角色设定..." style="min-height:80px;"></textarea>
+              <p class="form-hint">修改后立即生效</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="margin-bottom:0;display:flex;justify-content:space-between;align-items:center;">
+                🔧 调试模式
+                <label style="position:relative;width:44px;height:24px;display:inline-block;cursor:pointer;">
+                  <input type="checkbox" id="debugModeToggle" style="opacity:0;width:0;height:0;" />
+                  <span id="debugModeTrack" style="position:absolute;inset:0;background:var(--border-color);border-radius:12px;transition:.3s;"></span>
+                  <span id="debugModeKnob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+                </label>
               </label>
-            </label>
-            <p class="form-hint" style="margin-top:-4px;margin-bottom:12px;">开启后可查看 API 请求/响应，hover AI 气泡可删除单条回复</p>
+              <p class="form-hint" style="margin-top:-4px;margin-bottom:12px;">开启后可查看 API 请求/响应</p>
+            </div>
           </div>
-          <button class="btn-danger" id="clearCurrentChat">
-            清除当前对话记录
-          </button>
-          <div style="display:flex;gap:8px;margin-top:12px;">
-            <button class="btn-primary" id="exportData" style="flex:1;font-size:13px;padding:8px;">📤 导出对话</button>
-            <button class="btn-primary" id="importData" style="flex:1;font-size:13px;padding:8px;background:var(--pink-500);">📥 导入对话</button>
-            <button class="btn-primary" id="openLogBtn" style="flex:1;font-size:13px;padding:8px;background:#667eea;">📡 API 日志</button>
-            <input type="file" id="importFile" accept=".json" style="display:none;" />
+          <!-- Tab 2: 外观 -->
+          <div class="settings-panel" id="panel-customize">
+            <div class="form-group">
+              <label class="form-label">🧑 我的头像</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div id="userAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#B8A9FF,#8B7FE8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(139,127,232,0.25);">我</div>
+                <input type="text" class="form-input" id="userAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
+              </div>
+            </div>
+            <div class="form-group" id="aiAvatarGroup" style="display:none;">
+              <label class="form-label">🤖 AI 头像</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div id="aiAvatarPreview" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFD700,#FFA500);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 2px 8px rgba(255,107,157,0.25);">🤖</div>
+                <input type="text" class="form-input" id="aiAvatarInput" placeholder="输入文字或 Emoji" maxlength="4" style="flex:1;font-size:20px;text-align:center;" />
+              </div>
+            </div>
+            <div class="form-group" id="aiColorGroup" style="display:none;">
+              <label class="form-label">🎨 AI 头像颜色</label>
+              <div id="colorPresets" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+            </div>
+          </div>
+          <!-- Tab 3: 数据 -->
+          <div class="settings-panel" id="panel-data">
+            <button class="btn-danger" id="clearCurrentChat">清除当前对话记录</button>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button class="btn-primary" id="exportData" style="flex:1;font-size:13px;padding:8px;">📤 导出对话</button>
+              <button class="btn-primary" id="importData" style="flex:1;font-size:13px;padding:8px;background:var(--pink-500);">📥 导入对话</button>
+              <button class="btn-primary" id="openLogBtn" style="flex:1;font-size:13px;padding:8px;background:#667eea;">📡 API 日志</button>
+              <input type="file" id="importFile" accept=".json" style="display:none;" />
+            </div>
           </div>
         </div>
       </div>
@@ -1260,6 +1299,20 @@
           <button class="btn-danger" id="clearLogs" style="font-size:12px;padding:4px 12px;">清空日志</button>
         </div>
         <div id="logList" style="flex:1;overflow-y:auto;padding:12px 16px;"></div>
+      </div>
+    </div>
+
+    <!-- 搜索弹窗 -->
+    <div class="modal-overlay" id="searchModal">
+      <div class="modal" style="max-width:500px;max-height:80vh;display:flex;flex-direction:column;">
+        <div class="modal-header">
+          <div style="flex:1;display:flex;align-items:center;gap:8px;">
+            <span>🔍</span>
+            <input type="text" class="form-input" id="searchInput" placeholder="搜索对话内容..." style="border:none;box-shadow:none;padding:4px 0;background:transparent;" />
+          </div>
+          <button class="modal-close" id="closeSearch">✕</button>
+        </div>
+        <div id="searchResults" style="flex:1;overflow-y:auto;padding:12px 16px;"></div>
       </div>
     </div>
 
@@ -1283,6 +1336,7 @@
               </span>
             </div>
           </div>
+          <button class="header-btn" id="searchBtn" title="搜索消息">🔍</button>
           <button class="header-btn" id="settingsBtn">⚙️</button>
         </div>
       </header>
@@ -1338,7 +1392,10 @@
       let sessions = JSON.parse(localStorage.getItem("chatSessions") || "[]");
       let activeSessionId = localStorage.getItem("activeSessionId") || null;
       let isStreaming = false;
-      let apiKey = localStorage.getItem("deepseekApiKey") || "";
+      // API Key 简单编码存储（防止肉眼可见，非加密）
+      function encodeKey(k) { return btoa(encodeURIComponent(k)); }
+      function decodeKey(k) { try { return decodeURIComponent(atob(k)); } catch(e) { return k; } }
+      let apiKey = decodeKey(localStorage.getItem("deepseekApiKey") || "") || localStorage.getItem("deepseekApiKey") || "";
       let userAvatar = localStorage.getItem("userAvatar") || "我";
       let debugMode = localStorage.getItem("debugMode") === "true";
       let apiLogs = JSON.parse(localStorage.getItem("apiLogs") || "[]");
@@ -1371,6 +1428,7 @@
       const newSessionModal = $("newSessionModal");
       const settingsModal = $("settingsModal");
       const logModal = $("logModal");
+      const searchModal = $("searchModal");
       const errorBanner = $("errorBanner");
       const romanticBg = $("romanticBg");
 
@@ -1796,16 +1854,33 @@
           // 用户消息：单个气泡
           const group = document.createElement("div");
           group.className = "message-group";
+          let timeHtml = "";
+          if (msg.timestamp) {
+            const t = new Date(msg.timestamp);
+            timeHtml = `<div style="text-align:center;font-size:11px;color:var(--text-secondary);margin-bottom:4px;">${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}</div>`;
+          }
           group.innerHTML = `
+          ${timeHtml}
           <div class="message-row user">
             <div class="avatar user-avatar">${userAvatar}</div>
             <div class="bubble user-bubble">${formatContent(msg.content)}<button class="copy-btn" title="复制">📋</button></div>
+            <button class="msg-delete-btn" data-idx="${session.messages.indexOf(msg)}" title="删除此条消息">✕</button>
           </div>
         `;
           chatContainer.appendChild(group);
           // 复制按钮
           const ubtn = group.querySelector(".copy-btn");
           if (ubtn) ubtn.addEventListener("click", (e) => { e.stopPropagation(); copyText(msg.content, ubtn); });
+          // 删除按钮
+          const udel = group.querySelector(".msg-delete-btn");
+          if (udel) udel.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(udel.dataset.idx);
+            session.messages.splice(idx, 1);
+            saveSessions();
+            loadActiveSession();
+            renderSessionList();
+          });
           scrollToBottom();
           return group;
 
@@ -2148,8 +2223,11 @@
           if (session.messages[i].role === "user") { userMsgIndex = i; break; }
         }
         const userContent = userMsgIndex >= 0 ? session.messages[userMsgIndex].content : "";
-        session.messages.splice(aiMsgIndex, 1);
-        if (userMsgIndex >= 0) session.messages.splice(userMsgIndex, 1);
+        // 先删大索引（AI），再删小索引（user），避免偏移
+        const indices = [aiMsgIndex];
+        if (userMsgIndex >= 0) indices.push(userMsgIndex);
+        indices.sort((a, b) => b - a); // 降序
+        indices.forEach(idx => session.messages.splice(idx, 1));
         saveSessions();
         messageInput.value = userContent;
         autoResize();
@@ -2194,10 +2272,58 @@
         `).join('');
       }
 
+      // ==================== 消息搜索 ====================
+      function searchMessages(query) {
+        const results = [];
+        if (!query.trim()) { renderSearchResults(results); return; }
+        const q = query.toLowerCase();
+        sessions.forEach(session => {
+          session.messages.forEach(msg => {
+            if (msg.content && msg.content.toLowerCase().includes(q)) {
+              results.push({ session, msg, match: msg.content });
+            }
+          });
+        });
+        renderSearchResults(results);
+      }
+
+      function renderSearchResults(results) {
+        const container = $("searchResults");
+        if (results.length === 0) {
+          container.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:30px 0;">无匹配结果</div>';
+          return;
+        }
+        container.innerHTML = results.slice(0, 50).map(r => {
+          const role = r.msg.role === "user" ? "🧑" : "🤖";
+          const preview = r.match.length > 100 ? r.match.slice(0, 100) + "..." : r.match;
+          return `<div style="padding:10px 0;border-bottom:1px solid var(--border-color);cursor:pointer;" data-session="${r.session.id}">
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">${role} ${escapeHtml(r.session.name)}</div>
+            <div style="font-size:14px;line-height:1.5;">${escapeHtml(preview)}</div>
+          </div>`;
+        }).join('');
+        container.querySelectorAll("[data-session]").forEach(el => {
+          el.addEventListener("click", () => {
+            const sid = el.dataset.session;
+            switchSession(sid);
+            searchModal.classList.remove("show");
+          });
+        });
+      }
+
       // ==================== 初始化 ====================
       function init() {
         createFloatingHearts();
         setupLongPress();
+        // 设置弹窗 Tab 切换
+        document.querySelectorAll(".settings-tab").forEach(tab => {
+          tab.addEventListener("click", () => {
+            document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
+            document.querySelectorAll(".settings-panel").forEach(p => p.classList.remove("active"));
+            tab.classList.add("active");
+            document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+          });
+        });
+
         $("apiKeyInput").value = apiKey;
         renderSessionList();
         loadActiveSession();
@@ -2254,10 +2380,19 @@
             settingsModal.classList.remove("show");
         });
 
+        // 搜索
+        $("searchBtn").addEventListener("click", () => {
+          searchModal.classList.add("show");
+          setTimeout(() => $("searchInput").focus(), 100);
+        });
+        $("closeSearch").addEventListener("click", () => searchModal.classList.remove("show"));
+        searchModal.addEventListener("click", (e) => { if (e.target === searchModal) searchModal.classList.remove("show"); });
+        $("searchInput").addEventListener("input", (e) => searchMessages(e.target.value));
+
         // API Key 保存
         $("apiKeyInput").addEventListener("input", () => {
           apiKey = $("apiKeyInput").value.trim();
-          localStorage.setItem("deepseekApiKey", apiKey);
+          localStorage.setItem("deepseekApiKey", encodeKey(apiKey));
           updateApiKeyStatus();
         });
 
@@ -2376,7 +2511,12 @@
           updateSendButton();
         });
         messageInput.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
+          if (e.key === "Enter" && (!e.shiftKey && !e.ctrlKey && !e.metaKey)) {
+            e.preventDefault();
+            sendMessage();
+          }
+          // Ctrl/Cmd + Enter 也可发送
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             sendMessage();
           }
@@ -2393,6 +2533,7 @@
             newSessionModal.classList.remove("show");
             settingsModal.classList.remove("show");
             logModal.classList.remove("show");
+            searchModal.classList.remove("show");
             closeSidebar();
           }
         });
