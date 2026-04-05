@@ -79,6 +79,7 @@
       html,
       body {
         height: 100%;
+        height: 100dvh;
         overflow: hidden;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
         background: var(--bg-primary);
@@ -87,6 +88,26 @@
         -moz-osx-font-smoothing: grayscale;
         font-size: 15px;
         line-height: 1.6;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: auto;
+        touch-action: manipulation;
+      }
+
+      /* ==================== iOS PWA Standalone ==================== */
+      @supports (display: standalone) {
+        .header {
+          padding-top: var(--safe-top);
+        }
+      }
+
+      /* ==================== iOS Safe Area & Touch ==================== */
+      @supports (padding: env(safe-area-inset-top)) {
+        .sidebar {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        .sidebar-overlay {
+          padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
       }
 
       /* ==================== Romantic BG (neutralized) ==================== */
@@ -510,6 +531,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+        height: 100dvh;
         max-width: 480px;
         margin: 0 auto;
         position: relative;
@@ -803,6 +825,11 @@
         padding: 8px 16px;
         padding-bottom: calc(8px + var(--safe-bottom));
         z-index: 101;
+        transform: translateY(0);
+        transition: transform 0.15s ease-out;
+      }
+      .input-bar.keyboard-open {
+        /* JS 会动态设置 transform 来适配键盘 */
       }
       .input-bar-inner {
         display: flex;
@@ -1213,6 +1240,139 @@
         transform: scale(0.97);
       }
 
+      /* ==================== iOS Mobile Optimizations ==================== */
+      @media (max-width: 480px) {
+        /* 触摸目标最小 44px (Apple HIG) */
+        .menu-btn,
+        .header-btn {
+          min-width: 44px;
+          min-height: 44px;
+        }
+        .sidebar-close {
+          min-width: 44px;
+          min-height: 44px;
+        }
+        .session-delete {
+          min-width: 44px;
+          min-height: 44px;
+          opacity: 0.5;
+        }
+        /* 消息气泡增大触摸区域 */
+        .bubble {
+          padding: 12px 16px;
+        }
+        .copy-btn,
+        .msg-delete-btn {
+          width: 30px;
+          height: 30px;
+        }
+        /* 输入区域优化 */
+        .input-wrapper {
+          min-height: 44px;
+          padding: 10px 16px;
+        }
+        .send-btn {
+          width: 44px;
+          height: 44px;
+        }
+        /* 头部紧凑 */
+        .header-content {
+          padding: 6px 12px;
+          min-height: 44px;
+        }
+        .header-avatar {
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+        /* 聊天区域减少水平 padding */
+        .chat-container {
+          padding: 12px 12px var(--chat-padding-bottom);
+        }
+        /* 消息行宽度适配小屏 */
+        .message-row {
+          max-width: 88%;
+        }
+        /* 侧边栏全宽 */
+        .sidebar {
+          max-width: 85vw;
+        }
+        /* 弹窗全屏优化 */
+        .modal-overlay {
+          padding: 0;
+          align-items: flex-end;
+        }
+        .modal {
+          max-width: 100%;
+          max-height: 90vh;
+          border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+          animation: modalSlideUp 0.3s ease-out;
+        }
+        @keyframes modalSlideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        /* 设置弹窗底部安全区域 */
+        .modal-body {
+          padding-bottom: calc(20px + var(--safe-bottom));
+        }
+        /* 新建会话按钮更大触摸区域 */
+        .new-chat-btn {
+          padding: 14px;
+          font-size: 16px;
+          min-height: 48px;
+        }
+        /* 表单输入更大 */
+        .form-input {
+          padding: 12px 14px;
+          font-size: 16px; /* 防止 iOS 自动缩放 */
+          min-height: 48px;
+        }
+        .form-textarea {
+          min-height: 100px;
+        }
+        /* Tab 更大触摸区域 */
+        .settings-tab {
+          padding: 10px 0;
+          font-size: 14px;
+        }
+        /* 主题选择器触摸优化 */
+        .theme-option {
+          padding: 14px 8px;
+          min-height: 72px;
+        }
+        .theme-swatch {
+          width: 40px;
+          height: 40px;
+        }
+        /* 按钮更大触摸区域 */
+        .btn-primary {
+          padding: 16px;
+          font-size: 17px;
+          min-height: 50px;
+        }
+        .btn-danger {
+          padding: 16px;
+          font-size: 16px;
+          min-height: 48px;
+        }
+        /* 空状态按钮 */
+        .empty-btn {
+          padding: 14px 32px;
+          font-size: 16px;
+          min-height: 48px;
+        }
+        /* 欢迎页适配 */
+        .welcome {
+          padding: 32px 16px;
+        }
+        .welcome-avatar {
+          width: 64px;
+          height: 64px;
+          font-size: 30px;
+        }
+      }
+
       @media (min-width: 481px) {
         .message-row {
           max-width: 70%;
@@ -1513,6 +1673,17 @@
               <button class="btn-primary" id="importData" style="flex:1;font-size:13px;padding:8px;background:var(--brand);display:inline-flex;align-items:center;justify-content:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> 导入对话</button>
               <button class="btn-primary" id="openLogBtn" style="flex:1;font-size:13px;padding:8px;background:#667eea;display:inline-flex;align-items:center;justify-content:center;gap:4px;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg> API 日志</button>
               <input type="file" id="importFile" accept=".json" style="display:none;" />
+            </div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-color);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:13px;color:var(--text-secondary);">存储空间</span>
+                <span id="storageSize" style="font-size:13px;color:var(--text-secondary);font-variant-numeric:tabular-nums;">计算中...</span>
+              </div>
+              <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;margin-bottom:12px;">
+                <div id="storageBar" style="height:100%;background:linear-gradient(90deg,#34c759,#30d158);border-radius:3px;transition:width 0.3s;width:0%;"></div>
+              </div>
+              <button class="btn-danger" id="clearAllData" style="width:100%;font-size:13px;padding:10px;">清除全部缓存并重置</button>
+              <p style="font-size:11px;color:var(--text-tertiary);margin-top:6px;text-align:center;">此操作不可撤销，将删除所有对话记录和设置</p>
             </div>
           </div>
         </div>
@@ -2605,6 +2776,97 @@
         createFloatingHearts();
         setupLongPress();
 
+        // ==================== iOS 键盘适配 ====================
+        const inputBarEl = $("inputBar");
+        if (window.visualViewport) {
+          let initialViewportHeight = window.visualViewport.height;
+          window.visualViewport.addEventListener("resize", () => {
+            const vv = window.visualViewport;
+            const keyboardHeight = initialViewportHeight - vv.height;
+            if (keyboardHeight > 50) {
+              // 键盘弹出
+              inputBarEl.style.transform = `translateY(-${keyboardHeight}px)`;
+              inputBarEl.classList.add("keyboard-open");
+              chatContainer.style.paddingBottom = `${70 + keyboardHeight}px`;
+            } else {
+              // 键盘收起
+              inputBarEl.style.transform = "translateY(0)";
+              inputBarEl.classList.remove("keyboard-open");
+              chatContainer.style.paddingBottom = "";
+              initialViewportHeight = vv.height;
+            }
+          });
+          // 页面恢复时重置
+          window.visualViewport.addEventListener("scroll", () => {
+            if (window.visualViewport.height >= initialViewportHeight - 10) {
+              inputBarEl.style.transform = "translateY(0)";
+              inputBarEl.classList.remove("keyboard-open");
+              chatContainer.style.paddingBottom = "";
+            }
+          });
+        }
+
+        // ==================== iOS 滑动关闭侧边栏 ====================
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        document.addEventListener("touchstart", (e) => {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        document.addEventListener("touchend", (e) => {
+          const deltaX = e.changedTouches[0].clientX - touchStartX;
+          const deltaY = e.changedTouches[0].clientY - touchStartY;
+          // 只处理水平滑动（水平位移 > 垂直位移）
+          if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+          if (sidebar.classList.contains("open") && deltaX < -50) {
+            // 左滑关闭侧边栏
+            closeSidebar();
+          }
+        }, { passive: true });
+
+        // ==================== iOS 弹窗下拉关闭 ====================
+        document.querySelectorAll(".modal-overlay").forEach(overlay => {
+          let modalTouchStartY = 0;
+          let modalTouchCurrentY = 0;
+          const modal = overlay.querySelector(".modal");
+          if (!modal) return;
+
+          overlay.addEventListener("touchstart", (e) => {
+            // 只在 modal 顶部区域启动
+            const rect = modal.getBoundingClientRect();
+            if (e.touches[0].clientY - rect.top < 40) {
+              modalTouchStartY = e.touches[0].clientY;
+              modalTouchCurrentY = e.touches[0].clientY;
+              modal.style.transition = "none";
+            }
+          }, { passive: true });
+
+          overlay.addEventListener("touchmove", (e) => {
+            if (modalTouchStartY === 0) return;
+            modalTouchCurrentY = e.touches[0].clientY;
+            const diff = modalTouchCurrentY - modalTouchStartY;
+            if (diff > 0) {
+              modal.style.transform = `translateY(${diff}px)`;
+            }
+          }, { passive: true });
+
+          overlay.addEventListener("touchend", () => {
+            if (modalTouchStartY === 0) return;
+            const diff = modalTouchCurrentY - modalTouchStartY;
+            modal.style.transition = "";
+            modal.style.transform = "";
+            modalTouchStartY = 0;
+            modalTouchCurrentY = 0;
+            // 下拉超过 100px 关闭弹窗
+            if (diff > 100) {
+              overlay.classList.remove("show");
+            }
+          }, { passive: true });
+        });
+
                 // 设置弹窗 Tab 切换
         document.querySelectorAll(".settings-tab").forEach(tab => {
           tab.addEventListener("click", () => {
@@ -2660,9 +2922,10 @@
         });
 
         // 设置
-        $("settingsBtn").addEventListener("click", () =>
-          settingsModal.classList.add("show"),
-        );
+        $("settingsBtn").addEventListener("click", () => {
+          settingsModal.classList.add("show");
+          if (typeof updateStorageInfo === "function") updateStorageInfo();
+        });
         $("closeSettings").addEventListener("click", () =>
           settingsModal.classList.remove("show"),
         );
@@ -2696,6 +2959,33 @@
             renderSessionList();
           }
           settingsModal.classList.remove("show");
+        });
+
+        // 存储空间计算与清除
+        function updateStorageInfo() {
+          let total = 0;
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            total += (localStorage.getItem(key) || "").length;
+          }
+          const kb = (total / 1024).toFixed(1);
+          const mb = (total / 1024 / 1024).toFixed(2);
+          const display = total > 1024 * 1024 ? mb + " MB" : kb + " KB";
+          $("storageSize").textContent = display;
+          // 5MB 上限（iOS Safari 通常 5MB）
+          const pct = Math.min((total / (5 * 1024 * 1024)) * 100, 100);
+          const bar = $("storageBar");
+          bar.style.width = pct + "%";
+          if (pct > 80) bar.style.background = "linear-gradient(90deg,#FF3B30,#FF6B6B)";
+          else if (pct > 50) bar.style.background = "linear-gradient(90deg,#FF9500,#FFCC00)";
+          else bar.style.background = "linear-gradient(90deg,#34c759,#30d158)";
+        }
+        updateStorageInfo();
+
+        $("clearAllData").addEventListener("click", () => {
+          if (!confirm("确定要清除全部缓存吗？\n\n这将删除所有对话记录、设置和日志，此操作不可撤销。")) return;
+          localStorage.clear();
+          location.reload();
         });
 
         // 用户头像编辑
