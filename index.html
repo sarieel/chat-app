@@ -825,11 +825,6 @@
         padding: 8px 16px;
         padding-bottom: calc(8px + var(--safe-bottom));
         z-index: 101;
-        transform: translateY(0);
-        transition: transform 0.15s ease-out;
-      }
-      .input-bar.keyboard-open {
-        /* JS 会动态设置 transform 来适配键盘 */
       }
       .input-bar-inner {
         display: flex;
@@ -1287,11 +1282,23 @@
         }
         /* 聊天区域减少水平 padding */
         .chat-container {
-          padding: 12px 12px var(--chat-padding-bottom);
+          padding: 12px 12px 8px;
+          /* flex: 1 已在基础样式中设置，移动端无需额外底部 padding */
         }
         /* 消息行宽度适配小屏 */
         .message-row {
           max-width: 88%;
+        }
+        /* 输入栏：移动端使用 static 定位，依赖 flex 布局 */
+        /* iOS 键盘弹出时 100dvh 自动缩小，flex 自动将 input-bar 推到键盘上方 */
+        .input-bar {
+          position: static;
+          flex-shrink: 0;
+          transform: none !important;
+          transition: none;
+        }
+        .input-bar.keyboard-open {
+          transform: none !important;
         }
         /* 侧边栏全宽 */
         .sidebar {
@@ -2775,40 +2782,6 @@
 
         createFloatingHearts();
         setupLongPress();
-
-        // ==================== iOS 键盘适配 ====================
-        const inputBarEl = $("inputBar");
-        if (window.visualViewport) {
-          let initialViewportHeight = window.visualViewport.height;
-          let keyboardVisible = false;
-          window.visualViewport.addEventListener("resize", () => {
-            const vv = window.visualViewport;
-            const keyboardHeight = initialViewportHeight - vv.height;
-            if (keyboardHeight > 50) {
-              // 键盘弹出
-              keyboardVisible = true;
-              inputBarEl.style.transform = `translateY(-${keyboardHeight}px)`;
-              inputBarEl.classList.add("keyboard-open");
-              chatContainer.style.paddingBottom = `${70 + keyboardHeight}px`;
-            } else if (keyboardVisible) {
-              // 键盘收起（仅在之前是弹出状态时才重置）
-              keyboardVisible = false;
-              inputBarEl.style.removeProperty("transform");
-              inputBarEl.classList.remove("keyboard-open");
-              chatContainer.style.removeProperty("padding-bottom");
-              initialViewportHeight = vv.height;
-            }
-          });
-          // 页面恢复时重置
-          window.visualViewport.addEventListener("scroll", () => {
-            if (window.visualViewport.height >= initialViewportHeight - 10 && keyboardVisible) {
-              keyboardVisible = false;
-              inputBarEl.style.removeProperty("transform");
-              inputBarEl.classList.remove("keyboard-open");
-              chatContainer.style.removeProperty("padding-bottom");
-            }
-          });
-        }
 
         // ==================== iOS 滑动关闭侧边栏 ====================
         let touchStartX = 0;
