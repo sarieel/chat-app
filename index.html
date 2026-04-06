@@ -2780,28 +2780,32 @@
         const inputBarEl = $("inputBar");
         if (window.visualViewport) {
           let initialViewportHeight = window.visualViewport.height;
+          let keyboardVisible = false;
           window.visualViewport.addEventListener("resize", () => {
             const vv = window.visualViewport;
             const keyboardHeight = initialViewportHeight - vv.height;
             if (keyboardHeight > 50) {
               // 键盘弹出
+              keyboardVisible = true;
               inputBarEl.style.transform = `translateY(-${keyboardHeight}px)`;
               inputBarEl.classList.add("keyboard-open");
               chatContainer.style.paddingBottom = `${70 + keyboardHeight}px`;
-            } else {
-              // 键盘收起
-              inputBarEl.style.transform = "translateY(0)";
+            } else if (keyboardVisible) {
+              // 键盘收起（仅在之前是弹出状态时才重置）
+              keyboardVisible = false;
+              inputBarEl.style.removeProperty("transform");
               inputBarEl.classList.remove("keyboard-open");
-              chatContainer.style.paddingBottom = "";
+              chatContainer.style.removeProperty("padding-bottom");
               initialViewportHeight = vv.height;
             }
           });
           // 页面恢复时重置
           window.visualViewport.addEventListener("scroll", () => {
-            if (window.visualViewport.height >= initialViewportHeight - 10) {
-              inputBarEl.style.transform = "translateY(0)";
+            if (window.visualViewport.height >= initialViewportHeight - 10 && keyboardVisible) {
+              keyboardVisible = false;
+              inputBarEl.style.removeProperty("transform");
               inputBarEl.classList.remove("keyboard-open");
-              chatContainer.style.paddingBottom = "";
+              chatContainer.style.removeProperty("padding-bottom");
             }
           });
         }
