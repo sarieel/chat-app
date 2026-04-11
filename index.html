@@ -448,6 +448,34 @@
         display: none;
       }
 
+      /* 2.0 升级入口 */
+      .upgrade-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 10px 12px;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        background: linear-gradient(135deg, rgba(232, 71, 95, 0.08), rgba(168, 85, 247, 0.08));
+        border: 1px solid rgba(232, 71, 95, 0.15);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+      }
+      .upgrade-banner:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(232, 71, 95, 0.15); }
+      .upgrade-banner:active { transform: scale(0.98); }
+      .upgrade-banner-icon { font-size: 22px; flex-shrink: 0; }
+      .upgrade-banner-text { display: flex; flex-direction: column; gap: 2px; }
+      .upgrade-banner-text strong { font-size: 14px; }
+      .upgrade-banner-text small { font-size: 11px; color: var(--text-secondary); }
+      @media (prefers-color-scheme: dark) {
+        .upgrade-banner {
+          background: linear-gradient(135deg, rgba(232, 71, 95, 0.12), rgba(168, 85, 247, 0.12));
+          border-color: rgba(232, 71, 95, 0.25);
+        }
+      }
+
       .session-item {
         display: flex;
         align-items: center;
@@ -1535,6 +1563,13 @@
       </div>
       <button class="new-chat-btn" id="newChatBtn">✨ 新建人设</button>
       <div class="session-list" id="sessionList"></div>
+      <a href="index-v2.html" class="upgrade-banner" id="upgradeBanner">
+        <span class="upgrade-banner-icon">✨</span>
+        <span class="upgrade-banner-text">
+          <strong>LoveChat 2.0</strong>
+          <small>全新体验，立即升级 →</small>
+        </span>
+      </a>
     </div>
 
     <!-- 新建会话弹窗 -->
@@ -1796,6 +1831,11 @@
     </div>
 
     <script>
+      // ==================== 2.0 版本路由 ====================
+      if (new URLSearchParams(location.search).has('v') || new URLSearchParams(location.search).has('v2')) {
+        location.replace('index-v2.html' + location.search);
+      }
+
       // ==================== 配置 ====================
       const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
