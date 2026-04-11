@@ -219,6 +219,9 @@
       display: flex; align-items: center; padding: 14px 16px;
       cursor: pointer; position: relative;
       transition: background 0.15s, transform 0.15s;
+      background: none; border: none; width: 100%;
+      text-align: left; font: inherit; color: inherit;
+      -webkit-appearance: none; appearance: none;
     }
     .chat-item:active { background: var(--love-pale); transform: scale(0.985); }
     .chat-item::after {
@@ -261,8 +264,9 @@
       display: flex; flex-direction: column;
       transform: translateX(100%);
       transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      pointer-events: none;
     }
-    .chat-window.open { transform: translateX(0); }
+    .chat-window.open { transform: translateX(0); pointer-events: auto; }
     .chat-messages { flex: 1; overflow-y: auto; padding: 14px 16px; -webkit-overflow-scrolling: touch; }
     .chat-messages::-webkit-scrollbar { display: none; }
 
@@ -339,6 +343,9 @@
     .contact-item {
       display: flex; align-items: center; padding: 12px 18px;
       cursor: pointer; position: relative; transition: background 0.15s;
+      background: none; border: none; width: 100%;
+      text-align: left; font: inherit; color: inherit;
+      -webkit-appearance: none; appearance: none;
     }
     .contact-item:active { background: var(--love-pale); }
     .contact-item::after {
@@ -516,8 +523,9 @@
       display: flex; flex-direction: column;
       transform: translateX(100%);
       transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+      pointer-events: none;
     }
-    .settings-window.open { transform: translateX(0); }
+    .settings-window.open { transform: translateX(0); pointer-events: auto; }
     .settings-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
     .settings-content::-webkit-scrollbar { display: none; }
     .settings-group {
@@ -1326,7 +1334,7 @@
         const unread = s.unread || 0;
         const emoji = s.emoji || "💕";
         const bg = avatarGradients[i % avatarGradients.length];
-        return `<button class="chat-item" data-id="${s.id}" style="background:none;border:none;width:100%;text-align:left;font:inherit;color:inherit;padding:14px 16px;cursor:pointer;position:relative;transition:background 0.15s,transform 0.15s;"><div style="display:flex;align-items:center;"><div class="chat-avatar" style="background:${bg}">${emoji}</div><div class="chat-info"><div class="chat-info-top"><span class="chat-name">${esc(s.name)}</span><span class="chat-time">${time}</span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span class="chat-preview">${esc(preview)}</span>${unread > 0 ? `<span class="chat-badge">${unread}</span>` : ""}</div></div></div></button>`;
+        return `<button class="chat-item" data-id="${s.id}"><div style="display:flex;align-items:center;"><div class="chat-avatar" style="background:${bg}">${emoji}</div><div class="chat-info"><div class="chat-info-top"><span class="chat-name">${esc(s.name)}</span><span class="chat-time">${time}</span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span class="chat-preview">${esc(preview)}</span>${unread > 0 ? `<span class="chat-badge">${unread}</span>` : ""}</div></div></div></button>`;
       }).join("");
       const total = sessions.reduce((s, x) => s + (x.unread || 0), 0);
       const badge = $("chatBadge");
@@ -1405,7 +1413,7 @@
       const list = $("contactList");
       if (!sessions.length) { list.innerHTML = `<div class="empty-state" style="padding:40px 20px;"><div class="empty-state-icon" style="opacity:0.4;"><svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M40 21v-2a4 4 0 0 0-4-4H12a4 4 0 0 0-4 4v2" stroke="var(--love)"/><circle cx="24" cy="14" r="6" stroke="var(--love)" fill="var(--love-pale)"/></svg></div><div class="empty-state-text">还没有朋友<br/>去创建一个吧</div></div>`; return; }
       const grads = ["var(--avatar-grad-1)","var(--avatar-grad-2)","var(--avatar-grad-3)","var(--avatar-grad-4)","var(--avatar-grad-5)","var(--avatar-grad-6)"];
-      list.innerHTML = sessions.map((s, i) => `<button class="contact-item" data-id="${s.id}" style="background:none;border:none;width:100%;text-align:left;font:inherit;color:inherit;padding:12px 18px;cursor:pointer;position:relative;display:flex;align-items:center;"><div class="contact-avatar" style="background:${grads[i % grads.length]}">${s.emoji || "💕"}</div><span class="contact-name">${esc(s.name)}</span><span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></button>`).join("");
+      list.innerHTML = sessions.map((s, i) => `<button class="contact-item" data-id="${s.id}"><div class="contact-avatar" style="background:${grads[i % grads.length]}">${s.emoji || "💕"}</div><span class="contact-name">${esc(s.name)}</span><span class="chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span></button>`).join("");
       list.querySelectorAll(".contact-item").forEach(item => item.addEventListener("click", () => openChat(item.dataset.id)));
     }
 
